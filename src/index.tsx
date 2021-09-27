@@ -14,7 +14,7 @@ export const cli = () => {
   });
 
   // Adding a way to quit the program
-  screen.key(['escape', 'q', 'C-c'], function(ch, key) {
+  screen.key(['escape', 'q', 'C-c'], (ch, key) => {
     return process.exit(0);
   });
 

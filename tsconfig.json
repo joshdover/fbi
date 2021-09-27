@@ -4,6 +4,7 @@
     "esModuleInterop": true,
     "strict": true,
     "jsx": "react",
-    "noImplicitAny": true
+    "noImplicitAny": true,
+    "downlevelIteration": true
   }
 }

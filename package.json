@@ -20,6 +20,7 @@
     "dedent": "^0.7.0",
     "dockerode": "^3.3.1",
     "neo-blessed": "^0.2.0",
+    "node-fetch": "^2.6.5",
     "react": "^17.0.2",
     "react-blessed": "^0.7.2"
   },
@@ -32,6 +33,7 @@
     "@types/blessed": "^0.1.19",
     "@types/dedent": "^0.7.0",
     "@types/dockerode": "^3.2.7",
+    "@types/node-fetch": "^2.5.3",
     "@types/react": "^17.0.24",
     "@types/react-blessed": "^0.7.0",
     "@typescript-eslint/eslint-plugin": "^4.31.2",

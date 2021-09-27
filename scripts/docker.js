@@ -3,5 +3,5 @@ require("@babel/register")({
   extensions: [".js", ".ts", ".tsx"],
 });
 
-const { cli } = require("../src");
-cli();
+const { runDockerTest } = require("../src/test");
+runDockerTest();

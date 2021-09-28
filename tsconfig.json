@@ -1,6 +1,8 @@
 {
   "include": ["src/**/*"],
   "compilerOptions": {
+    "target": "esnext",
+    "moduleResolution": "node",
     "esModuleInterop": true,
     "strict": true,
     "jsx": "react",

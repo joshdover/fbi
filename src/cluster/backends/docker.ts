@@ -44,6 +44,10 @@ class DockerContainer implements Container {
     private readonly logger: Logger
   ) {}
 
+  public get id(): string {
+    return this.container?.id ?? "uninitialized";
+  }
+
   public async launch() {
     this.logger.log("setup from DockerContainer");
     // Setup temp files to mount

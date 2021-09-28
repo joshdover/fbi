@@ -1,20 +1,19 @@
-import React, {
-  useCallback,
-  useEffect,
-  useState,
-  useRef,
-  Component,
-} from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import { Cluster } from "./cluster";
 import { Observable } from "rxjs";
 import { Widgets } from "neo-blessed";
+import { RecipeList } from "./components/recipe_list";
+import { RecipeBook } from "./recipes";
+import { ClusterStatus } from "./cluster/cluster";
 
-// Rendering a simple centered box
-export const App: React.FC<{
+interface Props {
   cluster: Cluster;
   logs$: Observable<string>;
   log: (msg: string) => void;
-}> = ({ cluster, logs$, log }) => {
+  recipeBook: RecipeBook;
+}
+
+export const App: React.FC<Props> = ({ cluster, logs$, log, recipeBook }) => {
   const [currentState, setCurrentState] = useState("boot");
   const handleSetupClick = useCallback(async () => {
     log("starting setup");
@@ -35,6 +34,21 @@ export const App: React.FC<{
     };
   }, [logs$]);
 
+  const [clusterStatus, setClusterStatus] = useState<
+    ClusterStatus | undefined
+  >();
+  useEffect(() => {
+    const subscription = cluster
+      .getStatus$()
+      .subscribe((s) => setClusterStatus(s));
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [cluster]);
+
+  const backendStatus = `Backend: ${clusterStatus?.backend}`;
+  const fleetServerStatus = `Fleet Server: ${clusterStatus?.fleetServer}`;
+
   return (
     <box top="center" left="center" width="100%" height="100%">
       <box
@@ -47,11 +61,32 @@ export const App: React.FC<{
         border={{ type: "line" }}
         style={{ border: { fg: "blue" } }}
       >
-        {currentState}
-        <button mouse onPress={handleSetupClick}>
+        <box height="100%-2" left={0} top={0} width={40}>
+          <box width="100%" height={1} top={0} left={0}>
+            {backendStatus}
+          </box>
+          <box width="100%" height={1} top={1} left={0}>
+            {fleetServerStatus}
+          </box>
+        </box>
+        <button
+          height="100%-2"
+          left={40}
+          top={0}
+          width={20}
+          mouse
+          onPress={handleSetupClick}
+        >
           Setup
         </button>
-        <button mouse top={2} onPress={handleShutdownClick}>
+        <button
+          height="100%=2"
+          left={60}
+          top={0}
+          width={20}
+          mouse
+          onPress={handleShutdownClick}
+        >
           Shutdown
         </button>
       </box>
@@ -65,7 +100,12 @@ export const App: React.FC<{
           border={{ type: "line" }}
           style={{ border: { fg: "blue" } }}
         >
-          Recipes
+          <RecipeList
+            scaleAgentGroup={cluster.scaleAgentGroup.bind(cluster)}
+            recipes={recipeBook
+              .getRecipes()
+              .map((r) => ({ agentConfig: r, count: 0 }))}
+          />
         </box>
         <log
           label="Logs"

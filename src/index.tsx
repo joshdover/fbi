@@ -1,9 +1,11 @@
+import path from "path";
 import React from "react";
 import blessed from "neo-blessed";
 import { createBlessedRenderer } from "react-blessed";
 import { App } from "./app";
 import { Cluster, ClusterConfig, DockerBackend } from "./cluster";
 import { BehaviorSubject } from "rxjs";
+import { RecipeBook } from "./recipes";
 
 const render = createBlessedRenderer(blessed);
 
@@ -21,7 +23,7 @@ const clusterConfig: ClusterConfig = {
   },
 };
 
-export const cli = (): void => {
+export const cli = async (): Promise<void> => {
   // Set up our backend
   const logger = {
     logs: ["init log 2"] as string[],
@@ -36,7 +38,16 @@ export const cli = (): void => {
     logger.log((err ?? "").toString());
   });
 
+  const recipeBook = new RecipeBook();
+  await recipeBook.loadRecipesFromDirectory(
+    path.join(__dirname, "..", "recipes")
+  );
   const cluster = new Cluster(clusterConfig, new DockerBackend(logger), logger);
+
+  // Create all policies by default for now
+  for (const recipe of recipeBook.getRecipes()) {
+    cluster.addAgentGroup(recipe);
+  }
 
   // Creating our screen
   const screen = blessed.screen({
@@ -52,7 +63,12 @@ export const cli = (): void => {
 
   // Rendering the React app using our screen
   render(
-    <App cluster={cluster} logs$={logger.logs$} log={logger.log} />,
+    <App
+      cluster={cluster}
+      logs$={logger.logs$}
+      log={logger.log}
+      recipeBook={recipeBook}
+    />,
     screen
   );
 };

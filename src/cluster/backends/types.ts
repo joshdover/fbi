@@ -1,4 +1,5 @@
 export interface Container {
+  id: string;
   stop(): Promise<void>;
   exec(options: {
     env: Record<string, string>;

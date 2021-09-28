@@ -6,13 +6,15 @@ import React, {
   Component,
 } from "react";
 import { Cluster } from "./cluster";
+import { Observable } from "rxjs";
+import { Widgets } from "neo-blessed";
 
 // Rendering a simple centered box
 export const App: React.FC<{
   cluster: Cluster;
-  logs: string[];
+  logs$: Observable<string>;
   log: (msg: string) => void;
-}> = ({ cluster, logs, log }) => {
+}> = ({ cluster, logs$, log }) => {
   const [currentState, setCurrentState] = useState("boot");
   const handleSetupClick = useCallback(async () => {
     log("starting setup");
@@ -25,28 +27,27 @@ export const App: React.FC<{
     setCurrentState("shutdown");
   }, [cluster]);
 
+  const logsRef = useRef<Widgets.Log>(null);
+  useEffect(() => {
+    const subscription = logs$.subscribe((log) => logsRef.current?.add(log));
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [logs$]);
+
   return (
-    <box label="FBI" top="center" left="center" width="99%" height="99%">
+    <box top="center" left="center" width="100%" height="100%">
       <box
-        label="Status"
-        top="2%"
-        left="1%"
-        width="30%"
-        height="96%"
+        label="Cluster Controls"
+        top={0}
+        left={0}
+        right={0}
+        width="100%"
+        height={5}
         border={{ type: "line" }}
         style={{ border: { fg: "blue" } }}
       >
         {currentState}
-      </box>
-      <box
-        label="Controls"
-        top="2%"
-        left="32%"
-        width="30%"
-        height="96%"
-        border={{ type: "line" }}
-        style={{ border: { fg: "blue" } }}
-      >
         <button mouse onPress={handleSetupClick}>
           Setup
         </button>
@@ -54,20 +55,35 @@ export const App: React.FC<{
           Shutdown
         </button>
       </box>
-      <log
-        label="Logs"
-        top="2%"
-        left="63%"
-        width="30%"
-        height="96%"
-        border={{ type: "line" }}
-        style={{ border: { fg: "blue" } }}
-        scrollOnInput
-        mouse
-        scrollable
-      >
-        {logs.join("\n")}
-      </log>
+      <box top={5} left={0} right={0} width="100%" height="100%-5">
+        <box
+          label="Recipes"
+          top={0}
+          left={0}
+          width="50%"
+          height="100%"
+          border={{ type: "line" }}
+          style={{ border: { fg: "blue" } }}
+        >
+          Recipes
+        </box>
+        <log
+          label="Logs"
+          top={0}
+          right={0}
+          width="50%"
+          height="100%"
+          border={{ type: "line" }}
+          style={{
+            border: { fg: "blue" },
+            scrollbar: { fg: "green" },
+          }}
+          scrollOnInput
+          mouse
+          scrollable
+          ref={logsRef}
+        />
+      </box>
     </box>
   );
 };

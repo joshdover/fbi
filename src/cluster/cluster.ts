@@ -70,17 +70,7 @@ export class Cluster {
     await this.backend.cleanup();
   }
 
-  public async addAgentGroup(): Promise<void> {
-    const agentConfig: AgentConfig = {
-      id: "nginx",
-      container: {
-        image: "nginx",
-      },
-      policy: {
-        integrations: [{ package: "system" }, { package: "nginx" }],
-      },
-    };
-
+  public async addAgentGroup(agentConfig: AgentConfig): Promise<void> {
     const { items: existingPolicies } = await this.makeKibanaRequest<{
       items: Array<{
         name: string;

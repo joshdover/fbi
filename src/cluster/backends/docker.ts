@@ -24,7 +24,7 @@ export class DockerBackend implements ContainerBackend {
   }
 
   public async cleanup(): Promise<void> {
-    await this.network!.remove();
+    await this.network?.remove();
   }
 
   public async launchContainer(options: ContainerOptions): Promise<Container> {
@@ -92,7 +92,7 @@ class DockerContainer implements Container {
 
     this.logger.log(`Container [${this.container.id}] started.`);
 
-    await this.backend.network!.connect({ Container: this.container!.id });
+    await this.backend.network?.connect({ Container: this.container.id });
     this.logger.log(`Container [${this.container.id}] connected to network.`);
   }
 
@@ -114,6 +114,7 @@ class DockerContainer implements Container {
     if (!this.container) {
       throw new Error(`Cannot exec before container is started!`);
     }
+    const container = this.container; // make TS happy
 
     // eslint-disable-next-line no-async-promise-executor
     return new Promise<string>(async (resolve, reject) => {
@@ -121,8 +122,8 @@ class DockerContainer implements Container {
         (acc, [key, val]) => [...acc, `${key}=${val}`],
         [] as string[]
       );
-      const execution = await this.container!.exec({ Cmd: cmd, Env });
-      const result = await execution.start({});
+      const execution = await container.exec({ Cmd: cmd, Env });
+      const result = await execution.start({ Tty: false, stdin: false });
       result.on("data", (d) => this.logger.log(`Exec output: ${d}`));
       result.on("done", resolve);
       result.on("error", reject);

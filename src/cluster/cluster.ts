@@ -153,8 +153,20 @@ export class Cluster {
       return;
     }
     this.updateAgentGroupStatus(id, { policy: "creating" });
-    const agentConfig = agentGroup.config;
+    try {
+      await this.configureAgentPolicy(agentGroup);
+    } catch (e: any) {
+      this.logger.log(
+        `Error while creating policy: ${e.stack ?? e.toString()}`
+      );
+      this.updateAgentGroupStatus(id, { policy: "error" });
+      return;
+    }
+    this.updateAgentGroupStatus(id, { policy: "created" });
+  }
 
+  private async configureAgentPolicy(agentGroup: AgentGroup): Promise<void> {
+    const agentConfig = agentGroup.config;
     const { items: existingPolicies } = await this.makeKibanaRequest<{
       items: Array<{
         name: string;
@@ -235,9 +247,6 @@ export class Cluster {
       agentPolicyId,
       containers: [],
       enrollmentToken,
-    });
-    this.updateAgentGroupStatus(id, {
-      policy: "created",
     });
   }
 

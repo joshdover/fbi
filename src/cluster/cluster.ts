@@ -1,7 +1,6 @@
 import fetch from "node-fetch";
-import { ContainerBackend, Container } from "./backends";
+import { ContainerBackend } from "./backends";
 import { Logger } from "./types";
-import path from "path";
 import {
   BehaviorSubject,
   combineLatest,
@@ -9,10 +8,6 @@ import {
   Observable,
   switchMap,
 } from "rxjs";
-import {
-  generateDefaultPackagePolicy,
-  PackageResponse,
-} from "./package_policy";
 import { AgentConfig, AgentGroup, AgentGroupStatus } from "./agent_group";
 import { FleetServer } from "./fleet_server";
 
@@ -50,8 +45,10 @@ export class Cluster {
     this.fleetServer = new FleetServer(
       this.backend,
       this.makeEsRequest.bind(this),
-      config.elasticsearch.host
+      config.elasticsearch.host,
+      this.makeKibanaRequest.bind(this)
     );
+    this.fleetServer.getLogs$().subscribe((log) => this.logger.log(log));
   }
 
   public async setup(): Promise<void> {

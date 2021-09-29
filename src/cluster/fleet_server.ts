@@ -1,12 +1,15 @@
-import { BehaviorSubject, Observable } from "rxjs";
+import { BehaviorSubject, Observable, ReplaySubject } from "rxjs";
 import { Container, ContainerBackend } from ".";
 import { ComponentStatus } from "./cluster";
 import { StackClient } from "./types";
+import { unenrollAgentForHostname } from "./unenroll";
 
 export class FleetServer {
   #status$ = new BehaviorSubject<ComponentStatus>("stopped");
+  #logs$ = new ReplaySubject<string>();
   #backend: ContainerBackend;
   #esClient: StackClient;
+  #kibanaClient: StackClient;
   #esHost: string;
   #serviceToken?: string;
   #container?: Container;
@@ -14,15 +17,21 @@ export class FleetServer {
   constructor(
     backend: ContainerBackend,
     esClient: StackClient,
-    esHost: string
+    esHost: string,
+    kibanaClient: StackClient
   ) {
     this.#backend = backend;
     this.#esClient = esClient;
     this.#esHost = esHost;
+    this.#kibanaClient = kibanaClient;
   }
 
   public getStatus$(): Observable<ComponentStatus> {
     return this.#status$.asObservable();
+  }
+
+  public getLogs$(): Observable<string> {
+    return this.#logs$.asObservable();
   }
 
   public async setup(): Promise<void> {
@@ -50,6 +59,12 @@ export class FleetServer {
     await this.#container?.stop();
     this.#container = undefined;
     this.#status$.next("stopped");
+
+    await unenrollAgentForHostname(
+      "fleet-server",
+      this.#kibanaClient,
+      this.#logs$.next
+    );
   }
 
   async #createServiceToken(): Promise<string> {

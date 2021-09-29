@@ -4,7 +4,7 @@ import blessed from "neo-blessed";
 import { createBlessedRenderer } from "react-blessed";
 import { App } from "./app";
 import { Cluster, ClusterConfig, DockerBackend } from "./cluster";
-import { BehaviorSubject } from "rxjs";
+import { ReplaySubject } from "rxjs";
 import { RecipeBook } from "./recipes";
 
 const render = createBlessedRenderer(blessed);
@@ -26,17 +26,17 @@ const clusterConfig: ClusterConfig = {
 export const cli = async (): Promise<void> => {
   // Set up our backend
   const logger = {
-    logs: ["init log 2"] as string[],
-    logs$: new BehaviorSubject("init log"),
+    logs$: new ReplaySubject<string>(),
     log: (msg: string) => {
-      logger.logs.push(msg);
       logger.logs$.next(msg);
     },
   };
 
   process.on("unhandledRejection", (err) => {
     logger.log((err ?? "").toString());
+    // @ts-expect-error no type
     if (err?.stack) {
+      // @ts-expect-error no type
       logger.log(err.stack);
     }
   });
@@ -60,8 +60,12 @@ export const cli = async (): Promise<void> => {
   });
 
   // Adding a way to quit the program
-  screen.key(["escape", "q", "C-c"], () => {
-    return process.exit(0);
+  screen.key(["escape", "q", "C-c"], async () => {
+    try {
+      await cluster.shutdown();
+    } finally {
+      process.exit(0);
+    }
   });
 
   // Rendering the React app using our screen

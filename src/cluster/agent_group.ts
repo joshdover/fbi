@@ -6,6 +6,7 @@ import {
   PackageResponse,
 } from "./package_policy";
 import { StackClient } from "./types";
+import { unenrollAgentForHostname } from "./unenroll";
 
 export interface AgentConfig {
   id: string;
@@ -214,8 +215,16 @@ export class AgentGroup {
     }
 
     const container = this.#containers.pop();
+    const containerId = container!.id;
     await container!.stop();
-    // TODO force unenroll agent
+
+    await unenrollAgentForHostname(
+      containerId.substring(0, 12), // Docker uses the first 12 digits of container id as hostname
+      this.#kibanaClient,
+      this.#logs$.next,
+      this.#agentPolicyId
+    );
+
     this.#updateStatus({
       size: this.#containers.length,
     });

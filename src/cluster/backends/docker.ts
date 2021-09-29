@@ -4,6 +4,8 @@ import { mkdtemp, writeFile } from "fs/promises";
 import path from "path";
 import os from "os";
 import { Logger } from "../types";
+import { BehaviorSubject, Observable } from "rxjs";
+import { ComponentStatus } from "../cluster";
 
 const TEMP_DIR = os.tmpdir();
 
@@ -13,24 +15,32 @@ export class DockerBackend implements ContainerBackend {
     protocol: "http",
   });
   public network?: Docker.Network;
-  private readonly containers = new Map<string, DockerContainer>();
+  public readonly containers = new Map<string, DockerContainer>();
+  readonly #status$ = new BehaviorSubject<ComponentStatus>("stopped");
 
   constructor(private readonly logger: Logger) {}
 
+  public getStatus$(): Observable<ComponentStatus> {
+    return this.#status$.asObservable();
+  }
+
   public async setup(): Promise<void> {
+    this.#status$.next("starting");
     this.network = await this.dockerApi.createNetwork({
       Name: "fbi",
     });
+    this.#status$.next("running");
   }
 
   public async cleanup(): Promise<void> {
     await this.network?.remove();
+    this.#status$.next("stopped");
   }
 
   public async launchContainer(options: ContainerOptions): Promise<Container> {
     const container = new DockerContainer(this, options, this.logger);
     await container.launch();
-    this.containers.set("x", container);
+    this.containers.set(container.id, container);
     return container;
   }
 }
@@ -112,6 +122,7 @@ class DockerContainer implements Container {
     this.logger.log(`Removing container [${this.container.id}]`);
     await this.container.remove();
     this.logger.log(`Removed container [${this.container.id}]`);
+    this.backend.containers.delete(this.id);
   }
 
   public exec({ env, cmd }: { env?: Record<string, string>; cmd: string[] }) {

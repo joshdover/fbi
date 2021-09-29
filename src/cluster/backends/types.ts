@@ -1,3 +1,6 @@
+import { Observable } from "rxjs";
+import { ComponentStatus } from "../cluster";
+
 export interface Container {
   id: string;
   stop(): Promise<void>;
@@ -21,5 +24,6 @@ export interface ContainerOptions {
 export interface ContainerBackend {
   setup(): Promise<void>;
   cleanup(): Promise<void>;
+  getStatus$(): Observable<ComponentStatus>;
   launchContainer(options: ContainerOptions): Promise<Container>;
 }

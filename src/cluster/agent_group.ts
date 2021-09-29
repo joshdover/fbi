@@ -1,8 +1,10 @@
+import { updatedDiff } from "deep-object-diff";
 import path from "path";
 import { BehaviorSubject, Observable, ReplaySubject } from "rxjs";
 import { Container, ContainerBackend } from ".";
 import {
   generateDefaultPackagePolicy,
+  PackagePolicy,
   PackageResponse,
 } from "./package_policy";
 import { StackClient } from "./types";
@@ -100,17 +102,16 @@ export class AgentGroup {
   }
 
   async #configurePolicy(): Promise<void> {
+    const policyName = `fbi-${this.#config.id}`;
     const { items: existingPolicies } = await this.#kibanaClient<{
       items: Array<{
         name: string;
         id: string;
         package_policies: Array<{ id: string }>;
       }>;
-    }>("GET", "/api/fleet/agent_policies?perPage=1000");
+    }>("GET", `/api/fleet/agent_policies?perPage=1&kuery=name:${policyName}`);
 
-    const existingPolicy = existingPolicies.find(
-      ({ name }) => name === `fbi-${this.#config.id}`
-    );
+    const existingPolicy = existingPolicies[0];
     let agentPolicyId = existingPolicy?.id;
 
     if (!agentPolicyId) {
@@ -121,7 +122,7 @@ export class AgentGroup {
         "POST",
         "/api/fleet/agent_policies",
         {
-          name: `fbi-${this.#config.id}`,
+          name: policyName,
           namespace: "default",
           description: `Policy created by FBI ${this.#config.id} recipe`,
           monitoring_enabled: ["metrics", "logs"],
@@ -146,9 +147,34 @@ export class AgentGroup {
     }
 
     // Add integrations to policy
-    if (existingPolicy?.package_policies?.length) {
+
+    const existingPackagePolicies = existingPolicy
+      ? await Promise.all(
+          existingPolicy.package_policies.map((packagePolicyId) =>
+            this.#kibanaClient<{ item: PackagePolicy & { id: string } }>(
+              "GET",
+              `/api/fleet/package_policies/${packagePolicyId}`
+            ).then((r) => r.item)
+          )
+        )
+      : [];
+
+    // Note: this doesn't support multiple integrations of the same package
+    const expectedPackages = this.#config.policy.integrations.map(
+      (i) => i.package
+    );
+    const policiesToRemove = existingPackagePolicies.filter(
+      (p) => !expectedPackages.includes(p.package.name)
+    );
+
+    if (policiesToRemove.length > 0) {
+      this.#logs$.next(
+        `Removing unneeded policies: [${policiesToRemove
+          .map((p) => p.id)
+          .join(", ")}]`
+      );
       await this.#kibanaClient("POST", "/api/fleet/package_policies/delete", {
-        packagePolicyIds: existingPolicy?.package_policies,
+        packagePolicyIds: policiesToRemove.map((p) => p.id),
         force: true,
       });
     }
@@ -159,16 +185,40 @@ export class AgentGroup {
         response: PackageResponse;
       }>("GET", `/api/fleet/epm/packages/${packageName}`);
 
-      const packagePolicy = generateDefaultPackagePolicy(
+      const expectedPackagePolicy = generateDefaultPackagePolicy(
         response,
         this.#config.id,
         agentPolicyId
       );
 
-      await this.#kibanaClient("POST", "/api/fleet/package_policies", {
-        ...packagePolicy,
-        force: true,
-      });
+      const existingPackagePolicy =
+        existingPolicy &&
+        existingPackagePolicies.find(
+          (p) => p.name === expectedPackagePolicy.name
+        );
+
+      if (existingPackagePolicy) {
+        const diff = updatedDiff(existingPackagePolicy, expectedPackagePolicy);
+
+        if (Object.keys(diff).length > 0) {
+          this.#logs$.next(
+            `Updating package policy [${existingPackagePolicy.id}], diff: ${diff}`
+          );
+
+          await this.#kibanaClient(
+            "PUT",
+            `/api/fleet/package_policies/${existingPackagePolicy.id}`,
+            expectedPackagePolicy
+          );
+        }
+      } else {
+        this.#logs$.next(`Creating new package policy...`);
+        await this.#kibanaClient(
+          "POST",
+          "/api/fleet/package_policies",
+          expectedPackagePolicy
+        );
+      }
     }
 
     this.#enrollmentToken = enrollmentToken;

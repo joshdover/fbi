@@ -18,6 +18,7 @@
   "homepage": "https://github.com/joshdover/fbi#readme",
   "dependencies": {
     "dedent": "^0.7.0",
+    "deep-object-diff": "^1.1.0",
     "dockerode": "^3.3.1",
     "js-yaml": "^4.1.0",
     "neo-blessed": "^0.2.0",

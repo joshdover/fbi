@@ -50,7 +50,7 @@ interface PolicyTemplateInputVar<
   type: "text" | "password" | "bool" | "yaml";
 }
 
-interface PackagePolicy {
+export interface PackagePolicy {
   name: string;
   description?: string;
   namespace: string;

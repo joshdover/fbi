@@ -1,0 +1,17 @@
+id: foo nginx
+container:
+  image: nginx
+policy:
+  name: Foo Nginx Machines
+  namespace: foo
+  unenroll_timeout_s: 120
+  monitoring: []
+  integrations:
+    - package: elastic_agent
+      namespace: default
+      name: "Agent monitoring"
+    - package: system
+      name: "System metrics"
+    - package: nginx
+      version: 0.3.0
+      name: "Acme webservers"

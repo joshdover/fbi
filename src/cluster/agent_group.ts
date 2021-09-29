@@ -17,7 +17,21 @@ export interface AgentConfig {
     env: Record<string, string>;
   };
   policy: {
-    integrations: { package: string }[];
+    integrations: Array<{
+      package: string;
+
+      name?: string;
+      description?: string;
+      namespace?: string;
+      output_id?: string;
+    }>;
+
+    name?: string;
+    description?: string;
+    namespace?: string;
+    monitoring?: ("metrics" | "logs")[];
+    unenrollment_timeout_s?: number;
+    is_managed?: boolean;
   };
 }
 
@@ -102,7 +116,8 @@ export class AgentGroup {
   }
 
   async #configurePolicy(): Promise<void> {
-    const policyName = `fbi-${this.#config.id}`;
+    const configPolicy = this.#config.policy;
+    const policyName = configPolicy.name ?? `fbi-${this.#config.id}`;
     const { items: existingPolicies } = await this.#kibanaClient<{
       items: Array<{
         name: string;
@@ -111,25 +126,48 @@ export class AgentGroup {
       }>;
     }>("GET", `/api/fleet/agent_policies?perPage=1&kuery=name:${policyName}`);
 
-    const existingPolicy = existingPolicies[0];
-    let agentPolicyId = existingPolicy?.id;
+    const expectedAgentPolicy = {
+      name: policyName,
+      description:
+        configPolicy.description ??
+        `Policy created by FBI ${this.#config.id} recipe`,
+      namespace: configPolicy.namespace ?? "default",
+      monitoring_enabled: configPolicy.monitoring ?? ["metrics", "logs"],
+      unenroll_timeout: configPolicy.unenrollment_timeout_s ?? 600,
+      is_managed: configPolicy.is_managed ?? false,
+    };
+
+    const existingAgentPolicy = existingPolicies[0];
+    let agentPolicyId = existingAgentPolicy?.id;
 
     if (!agentPolicyId) {
       // Create an agent policy
+      this.#logs$.next(`Creating new agent policy [${policyName}]`);
       const {
         item: { id },
       } = await this.#kibanaClient<{ item: { id: string } }>(
         "POST",
         "/api/fleet/agent_policies",
-        {
-          name: policyName,
-          namespace: "default",
-          description: `Policy created by FBI ${this.#config.id} recipe`,
-          monitoring_enabled: ["metrics", "logs"],
-        }
+        expectedAgentPolicy
       );
 
       agentPolicyId = id;
+    } else {
+      // Naive diff that works because we specify defaults for every field
+      const diff = updatedDiff(existingAgentPolicy, expectedAgentPolicy);
+      if (Object.keys(diff).length > 0) {
+        this.#logs$.next(
+          `Updating package policy [${
+            existingAgentPolicy.name
+          }], diff: ${JSON.stringify(diff, undefined, 2)}`
+        );
+
+        await this.#kibanaClient(
+          "PUT",
+          `/api/fleet/agent_policies/${agentPolicyId}`,
+          expectedAgentPolicy
+        );
+      }
     }
 
     // Get the enrollment token (should already be created)
@@ -147,10 +185,9 @@ export class AgentGroup {
     }
 
     // Add integrations to policy
-
-    const existingPackagePolicies = existingPolicy
+    const existingPackagePolicies = existingAgentPolicy
       ? await Promise.all(
-          existingPolicy.package_policies.map((packagePolicyId) =>
+          existingAgentPolicy.package_policies.map((packagePolicyId) =>
             this.#kibanaClient<{ item: PackagePolicy & { id: string } }>(
               "GET",
               `/api/fleet/package_policies/${packagePolicyId}`
@@ -179,30 +216,34 @@ export class AgentGroup {
       });
     }
 
-    for (const { package: packageName } of this.#config.policy.integrations) {
+    for (const integration of this.#config.policy.integrations) {
       // Find latest version
       const { response } = await this.#kibanaClient<{
         response: PackageResponse;
-      }>("GET", `/api/fleet/epm/packages/${packageName}`);
+      }>("GET", `/api/fleet/epm/packages/${integration.package}`);
 
       const expectedPackagePolicy = generateDefaultPackagePolicy(
         response,
         this.#config.id,
-        agentPolicyId
+        agentPolicyId,
+        integration
       );
 
       const existingPackagePolicy =
-        existingPolicy &&
+        existingAgentPolicy &&
         existingPackagePolicies.find(
           (p) => p.name === expectedPackagePolicy.name
         );
 
       if (existingPackagePolicy) {
+        // Naive diff that works because we specify defaults for every field
         const diff = updatedDiff(existingPackagePolicy, expectedPackagePolicy);
 
         if (Object.keys(diff).length > 0) {
           this.#logs$.next(
-            `Updating package policy [${existingPackagePolicy.id}], diff: ${diff}`
+            `Updating package policy [${
+              existingPackagePolicy.name
+            }], diff: ${JSON.stringify(diff, undefined, 2)}`
           );
 
           await this.#kibanaClient(
@@ -212,7 +253,9 @@ export class AgentGroup {
           );
         }
       } else {
-        this.#logs$.next(`Creating new package policy...`);
+        this.#logs$.next(
+          `Creating new package policy [${expectedPackagePolicy.name}]`
+        );
         await this.#kibanaClient(
           "POST",
           "/api/fleet/package_policies",
@@ -247,7 +290,7 @@ export class AgentGroup {
     });
 
     // install and enroll agent
-    this.#logs$.next(`Enrolling agent in container [${container.id}]`);
+    this.#logs$.next(`Enrolling agent in container [${container.shortId}]`);
     await container.exec({
       env: {
         FLEET_ENROLL: "1",

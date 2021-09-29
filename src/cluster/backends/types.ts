@@ -3,6 +3,7 @@ import { ComponentStatus } from "../cluster";
 
 export interface Container {
   id: string;
+  shortId: string;
   stop(): Promise<void>;
   exec(options: {
     env: Record<string, string>;

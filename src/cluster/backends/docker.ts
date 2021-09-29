@@ -58,6 +58,10 @@ class DockerContainer implements Container {
     return this.container?.id ?? "uninitialized";
   }
 
+  public get shortId(): string {
+    return this.container?.id.substring(0, 12) ?? "uninitialized";
+  }
+
   public async launch() {
     this.logger.log("setup from DockerContainer");
     // Setup temp files to mount
@@ -104,10 +108,10 @@ class DockerContainer implements Container {
     this.container = await this.backend.dockerApi.createContainer(options);
     await this.container.start();
 
-    this.logger.log(`Container [${this.container.id}] started.`);
+    this.logger.log(`Container [${this.shortId}] started.`);
 
     await this.backend.network?.connect({ Container: this.container.id });
-    this.logger.log(`Container [${this.container.id}] connected to network.`);
+    this.logger.log(`Container [${this.shortId}] connected to network.`);
   }
 
   public async stop() {
@@ -116,12 +120,12 @@ class DockerContainer implements Container {
       return;
     }
 
-    this.logger.log(`Stopping container [${this.container.id}]`);
+    this.logger.log(`Stopping container [${this.shortId}]`);
     await this.container.stop();
-    this.logger.log(`Stopped container [${this.container.id}]`);
-    this.logger.log(`Removing container [${this.container.id}]`);
+    this.logger.log(`Stopped container [${this.shortId}]`);
+    this.logger.log(`Removing container [${this.shortId}]`);
     await this.container.remove();
-    this.logger.log(`Removed container [${this.container.id}]`);
+    this.logger.log(`Removed container [${this.shortId}]`);
     this.backend.containers.delete(this.id);
   }
 

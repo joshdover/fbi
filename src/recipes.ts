@@ -1,7 +1,7 @@
-import { AgentConfig } from "./cluster/cluster";
 import fs from "fs/promises";
 import path from "path";
 import yaml from "js-yaml";
+import { AgentConfig } from "./cluster/agent_group";
 
 export class RecipeBook {
   private readonly recipes = new Map<string, AgentConfig>();

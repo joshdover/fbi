@@ -1,4 +1,4 @@
-import { AgentConfig } from "./cluster";
+import { AgentConfig } from "./agent_group";
 
 export interface PackageResponse {
   name: string;
@@ -52,7 +52,7 @@ interface PolicyTemplateInputVar<
 
 export interface PackagePolicy {
   name: string;
-  description?: string;
+  description: string;
   namespace: string;
   policy_id: string;
   enabled: boolean;
@@ -100,23 +100,30 @@ type PackagePolicyInputConfigRecord = Record<
 export const generateDefaultPackagePolicy = (
   response: PackageResponse,
   agentConfigId: string,
-  agentPolicyId: string
+  agentPolicyId: string,
+  integration: AgentConfig["policy"]["integrations"][number]
 ): PackagePolicy => {
-  const { name, version, title, policy_templates, data_streams } = response;
+  const {
+    name: pkgName,
+    version,
+    title,
+    policy_templates,
+    data_streams,
+  } = response;
 
   const packagePolicy: PackagePolicy = {
+    name: integration.name ?? `fbi-${agentConfigId}-${pkgName}`,
+    description: integration.description ?? "",
     enabled: true,
     package: {
       title,
-      name,
+      name: pkgName,
       version,
     },
-    namespace: "default",
-    output_id: "default",
-    // Only support package with one policy for now
+    namespace: integration.namespace ?? "default",
+    output_id: integration.output_id ?? "default",
     inputs: generateInputsFromPolicyTemplates(policy_templates, data_streams),
     policy_id: agentPolicyId,
-    name: `fbi-${agentConfigId}-${name}`,
   };
 
   return packagePolicy;

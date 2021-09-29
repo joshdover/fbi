@@ -80,7 +80,7 @@ export const App: React.FC<Props> = ({ cluster, logs$, log, recipeBook }) => {
           Setup
         </button>
         <button
-          height="100%=2"
+          height="100%-2"
           left={60}
           top={0}
           width={20}

@@ -36,6 +36,9 @@ export const cli = async (): Promise<void> => {
 
   process.on("unhandledRejection", (err) => {
     logger.log((err ?? "").toString());
+    if (err?.stack) {
+      logger.log(err.stack);
+    }
   });
 
   const recipeBook = new RecipeBook();

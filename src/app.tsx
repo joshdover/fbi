@@ -102,9 +102,10 @@ export const App: React.FC<Props> = ({ cluster, logs$, log, recipeBook }) => {
         >
           <RecipeList
             scaleAgentGroup={cluster.scaleAgentGroup.bind(cluster)}
-            recipes={recipeBook
-              .getRecipes()
-              .map((r) => ({ agentConfig: r, count: 0 }))}
+            configureAgentGroupPolicy={cluster.configureAgentGroupPolicy.bind(
+              cluster
+            )}
+            recipes={clusterStatus?.agentGroups ?? {}}
           />
         </box>
         <log

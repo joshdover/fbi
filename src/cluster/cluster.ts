@@ -3,6 +3,10 @@ import { ContainerBackend, Container } from "./backends";
 import { Logger } from "./types";
 import path from "path";
 import { BehaviorSubject, Observable } from "rxjs";
+import {
+  generateDefaultPackagePolicy,
+  PackageResponse,
+} from "./package_policy";
 
 export interface ClusterConfig {
   superuser: {
@@ -40,7 +44,7 @@ type ResolvedAgentGroup = Required<AgentGroup>;
 export type ComponentStatus = "stopped" | "starting" | "running" | "error";
 
 export interface AgentGroupStatus {
-  policy: "not_created" | "created";
+  policy: "not_created" | "creating" | "created" | "error";
   size: number;
 }
 
@@ -94,7 +98,9 @@ export class Cluster {
       }
     }
     await this.fleetServer?.stop();
+    this.updateStatus({ fleetServer: "stopped" });
     await this.backend.cleanup();
+    this.updateStatus({ backend: "stopped" });
   }
 
   public getStatus$(): Observable<ClusterStatus> {
@@ -146,6 +152,7 @@ export class Cluster {
     if (agentGroup.agentPolicyId !== undefined) {
       return;
     }
+    this.updateAgentGroupStatus(id, { policy: "creating" });
     const agentConfig = agentGroup.config;
 
     const { items: existingPolicies } = await this.makeKibanaRequest<{
@@ -207,24 +214,18 @@ export class Cluster {
 
     for (const { package: packageName } of agentConfig.policy.integrations) {
       // Find latest version
-      const {
-        response: { version, title },
-      } = await this.makeKibanaRequest<{
-        response: { version: string; title: string };
+      const { response } = await this.makeKibanaRequest<{
+        response: PackageResponse;
       }>("GET", `/api/fleet/epm/packages/${packageName}`);
 
+      const packagePolicy = generateDefaultPackagePolicy(
+        response,
+        agentConfig.id,
+        agentPolicyId
+      );
+
       await this.makeKibanaRequest("POST", "/api/fleet/package_policies", {
-        enabled: true,
-        package: {
-          title,
-          name: packageName,
-          version,
-        },
-        namespace: "default",
-        output_id: "default",
-        inputs: [],
-        policy_id: agentPolicyId,
-        name: `fbi-${agentConfig.id}-${packageName}`,
+        ...packagePolicy,
         force: true,
       });
     }

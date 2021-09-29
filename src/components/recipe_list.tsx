@@ -1,26 +1,26 @@
 import React, { useCallback, useState } from "react";
-import { AgentConfig } from "../cluster/cluster";
-
-interface RecipeState {
-  agentConfig: AgentConfig;
-  count: number;
-}
+import { AgentGroupStatus } from "../cluster/cluster";
 
 interface Props {
-  recipes: RecipeState[];
+  recipes: Record<string, AgentGroupStatus>;
+  configureAgentGroupPolicy(id: string): void;
   scaleAgentGroup(id: string, size: number): void;
 }
 
-export const RecipeList: React.FC<Props> = ({ recipes, scaleAgentGroup }) => {
+export const RecipeList: React.FC<Props> = ({
+  recipes,
+  configureAgentGroupPolicy,
+  scaleAgentGroup,
+}) => {
   return (
     <>
-      {recipes.map((r) => (
+      {Object.entries(recipes).map(([recipeId, status]) => (
         <Recipe
-          recipe={r}
-          key={r.agentConfig.id}
-          scaleAgentGroup={(size: number) =>
-            scaleAgentGroup(r.agentConfig.id, size)
-          }
+          id={recipeId}
+          status={status}
+          key={recipeId}
+          configureAgentGroupPolicy={() => configureAgentGroupPolicy(recipeId)}
+          scaleAgentGroup={(size: number) => scaleAgentGroup(recipeId, size)}
         />
       ))}
     </>
@@ -28,37 +28,61 @@ export const RecipeList: React.FC<Props> = ({ recipes, scaleAgentGroup }) => {
 };
 
 const Recipe: React.FC<{
-  recipe: RecipeState;
+  id: string;
+  status: AgentGroupStatus;
+  configureAgentGroupPolicy(): void;
   scaleAgentGroup(size: number): void;
-}> = ({ recipe, scaleAgentGroup }) => {
-  const [count, setCount] = useState(recipe.count);
-
+}> = ({ id, status, configureAgentGroupPolicy, scaleAgentGroup }) => {
+  const count = status.size;
   const paddedCount = count.toString().length === 1 ? ` ${count}` : `${count}`;
 
   const scaleUp = useCallback(() => {
     scaleAgentGroup(count + 1);
-    setCount(count + 1);
   }, [scaleAgentGroup, count]);
 
   const scaleDown = useCallback(() => {
     scaleAgentGroup(count - 1);
-    setCount(count - 1);
   }, [scaleAgentGroup, count]);
 
   return (
     <box width="100%-2" height={1}>
       <box width="100%-5" height={1} left={0}>
-        {recipe.agentConfig.id}
+        {id}
       </box>
-      <button mouse width={1} height={1} right={4} onPress={scaleUp}>
-        +
-      </button>
-      <box width={3} height={1} right={1}>
-        {paddedCount}
-      </box>
-      <button mouse width={1} height={1} right={0} onPress={scaleDown}>
-        -
-      </button>
+      {status.policy === "not_created" ? (
+        <button
+          mouse
+          height={1}
+          width={13}
+          right={0}
+          onPress={configureAgentGroupPolicy}
+        >
+          Create policy
+        </button>
+      ) : null}
+      {status.policy === "creating" ? (
+        <box height={1} width={11} right={0}>
+          Creating...
+        </box>
+      ) : null}
+      {status.policy === "error" ? (
+        <box height={1} width={15} right={0}>
+          Error, see logs
+        </box>
+      ) : null}
+      {status.policy === "created" ? (
+        <>
+          <button mouse width={1} height={1} right={4} onPress={scaleUp}>
+            +
+          </button>
+          <box width={3} height={1} right={1}>
+            {paddedCount}
+          </box>
+          <button mouse width={1} height={1} right={0} onPress={scaleDown}>
+            -
+          </button>
+        </>
+      ) : null}
     </box>
   );
 };

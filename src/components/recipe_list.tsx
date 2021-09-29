@@ -14,14 +14,17 @@ export const RecipeList: React.FC<Props> = ({
 }) => {
   return (
     <>
-      {Object.entries(recipes).map(([recipeId, status]) => (
-        <Recipe
-          id={recipeId}
-          status={status}
-          key={recipeId}
-          configureAgentGroupPolicy={() => configureAgentGroupPolicy(recipeId)}
-          scaleAgentGroup={(size: number) => scaleAgentGroup(recipeId, size)}
-        />
+      {Object.entries(recipes).map(([recipeId, status], idx) => (
+        <box height={1} top={idx} key={recipeId}>
+          <Recipe
+            id={recipeId}
+            status={status}
+            configureAgentGroupPolicy={() =>
+              configureAgentGroupPolicy(recipeId)
+            }
+            scaleAgentGroup={(size: number) => scaleAgentGroup(recipeId, size)}
+          />
+        </box>
       ))}
     </>
   );

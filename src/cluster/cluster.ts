@@ -26,6 +26,7 @@ export interface AgentConfig {
   id: string;
   container: {
     image: string;
+    env: Record<string, string>;
   };
   policy: {
     integrations: { package: string }[];
@@ -278,6 +279,7 @@ export class Cluster {
   private async addAgentToGroup(agentGroup: ResolvedAgentGroup) {
     const container = await this.backend.launchContainer({
       image: agentGroup.config.container.image,
+      env: agentGroup.config.container.env,
       mounts: {
         [path.join(
           __dirname,

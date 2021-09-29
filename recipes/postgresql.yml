@@ -1,0 +1,10 @@
+id: postgresql
+container:
+  image: postgres
+  env:
+    POSTGRES_HOST_AUTH_METHOD: trust
+policy:
+  integrations:
+    - package: elastic_agent
+    - package: system
+    - package: postgresql

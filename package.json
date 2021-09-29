@@ -4,7 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run tsc && npm run lint",
+    "lint": "eslint src scripts",
+    "tsc": "tsc --noEmit --skipLibCheck",
+    "bootstrap": "npm install && node scripts/bootstrap.js",
+    "start": "node scripts/start.js"
   },
   "repository": {
     "type": "git",
@@ -25,7 +29,8 @@
     "node-fetch": "^2.6.5",
     "react": "^17.0.2",
     "react-blessed": "^0.7.2",
-    "rxjs": "^7.3.0"
+    "rxjs": "^7.3.0",
+    "tar": "^6.1.11"
   },
   "devDependencies": {
     "@babel/core": "^7.15.5",

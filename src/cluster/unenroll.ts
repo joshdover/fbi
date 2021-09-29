@@ -28,7 +28,7 @@ export const unenrollAgentForHostname = async (
         `Warning: unexpected policy id [${agent.policy_id}] for agent hostname [${hostname}], skipping unenrollment`
       );
     } else {
-      const resp = await kibanaClient(
+      await kibanaClient(
         "POST",
         `/api/fleet/agents/${agentsResponse.list[0].id}/unenroll`,
         { revoke: true, force: true }

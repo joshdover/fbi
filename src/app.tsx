@@ -13,17 +13,14 @@ interface Props {
   recipeBook: RecipeBook;
 }
 
-export const App: React.FC<Props> = ({ cluster, logs$, log, recipeBook }) => {
-  const [currentState, setCurrentState] = useState("boot");
+export const App: React.FC<Props> = ({ cluster, logs$, log }) => {
   const handleSetupClick = useCallback(async () => {
     log("starting setup");
     await cluster.setup();
-    setCurrentState("setup");
     log("done with setup");
   }, [cluster]);
   const handleShutdownClick = useCallback(async () => {
     await cluster.shutdown();
-    setCurrentState("shutdown");
   }, [cluster]);
 
   const logsRef = useRef<Widgets.Log>(null);
@@ -75,6 +72,7 @@ export const App: React.FC<Props> = ({ cluster, logs$, log, recipeBook }) => {
           top={0}
           width={20}
           mouse
+          // @ts-expect-error unsure how to fix this without forking the types
           onPress={handleSetupClick}
         >
           Setup
@@ -85,6 +83,7 @@ export const App: React.FC<Props> = ({ cluster, logs$, log, recipeBook }) => {
           top={0}
           width={20}
           mouse
+          // @ts-expect-error same
           onPress={handleShutdownClick}
         >
           Shutdown

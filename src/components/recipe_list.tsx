@@ -1,5 +1,5 @@
-import React, { useCallback, useState } from "react";
-import { AgentGroupStatus } from "../cluster/cluster";
+import React, { useCallback } from "react";
+import { AgentGroupStatus } from "../cluster/agent_group";
 
 interface Props {
   recipes: Record<string, AgentGroupStatus>;
@@ -58,6 +58,7 @@ const Recipe: React.FC<{
           height={1}
           width={13}
           right={0}
+          // @ts-expect-error same
           onPress={configureAgentGroupPolicy}
         >
           Create policy
@@ -75,12 +76,14 @@ const Recipe: React.FC<{
       ) : null}
       {status.policy === "created" ? (
         <>
+          {/** @ts-expect-error same */}
           <button mouse width={1} height={1} right={4} onPress={scaleUp}>
             +
           </button>
           <box width={3} height={1} right={1}>
             {paddedCount}
           </box>
+          {/** @ts-expect-error same */}
           <button mouse width={1} height={1} right={0} onPress={scaleDown}>
             -
           </button>

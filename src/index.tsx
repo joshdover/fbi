@@ -59,12 +59,7 @@ export const cli = async (): Promise<void> => {
 
   // Rendering the React app using our screen
   render(
-    <App
-      cluster={cluster}
-      logs$={logger.logs$}
-      log={logger.log}
-      recipeBook={recipeBook}
-    />,
+    <App cluster={cluster} logs$={logger.logs$} recipeBook={recipeBook} />,
     screen
   );
 };

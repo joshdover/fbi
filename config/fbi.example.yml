@@ -1,0 +1,17 @@
+# Elasticsearch superuser credentials
+# superuser:
+#   username: elastic
+#   password: changeme
+
+# Fleet Server and Agents running in Docker need access to an accessible address
+# for your Kibana and Elasticsearch instances. This cannot be localhost and
+# should instead be your host machine's private IP address (eg. 192.168.0.2)
+# Find available IPs with `ifconfig`.
+
+# Kibana host
+kibana:
+  host: http://192.168.0.1:5601
+
+# Elasticsearch host
+elasticsearch:
+  host: http://192.168.0.1:9200

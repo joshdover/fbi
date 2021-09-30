@@ -24,8 +24,7 @@ real software (eg. nginx).
     cd fbi
     npm run bootstrap
     ```
-- Find your private IP address
-- TODO: add config file for specifying IP and superuser creds (currently hardcoded my local IP)
+- Find your private IP address and update `kibana.host` and `elasticsearch.host` in `config/fbi.yml`
 - Start the tool:
     ```sh
     npm start

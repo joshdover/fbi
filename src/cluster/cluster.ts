@@ -10,20 +10,7 @@ import {
 } from "rxjs";
 import { AgentConfig, AgentGroup, AgentGroupStatus } from "./agent_group";
 import { FleetServer } from "./fleet_server";
-
-export interface ClusterConfig {
-  superuser: {
-    username: string;
-    password: string;
-  };
-
-  elasticsearch: {
-    host: string;
-  };
-  kibana: {
-    host: string;
-  };
-}
+import { ClusterConfig } from "./config";
 
 export type ComponentStatus = "stopped" | "starting" | "running" | "error";
 

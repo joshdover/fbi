@@ -3,28 +3,15 @@ import React from "react";
 import blessed from "neo-blessed";
 import { createBlessedRenderer } from "react-blessed";
 import { App } from "./app";
-import { Cluster, ClusterConfig, DockerBackend } from "./cluster";
+import { Cluster, DockerBackend } from "./cluster";
 import { ReplaySubject } from "rxjs";
 import { RecipeBook } from "./recipes";
+import { readConfig } from "./cluster/config";
 
 const render = createBlessedRenderer(blessed);
 
-const clusterConfig: ClusterConfig = {
-  superuser: {
-    username: "elastic",
-    password: "changeme",
-  },
-
-  elasticsearch: {
-    host: "http://192.168.178.38:9200",
-  },
-  kibana: {
-    host: "http://192.168.178.38:5601",
-  },
-};
-
 export const cli = async (): Promise<void> => {
-  // Set up our backend
+  // Configure "logger"
   const logger = {
     logs$: new ReplaySubject<string>(),
     log: (msg: string) => {
@@ -41,6 +28,8 @@ export const cli = async (): Promise<void> => {
     }
   });
 
+  // Setup cluster and backend
+  const clusterConfig = await readConfig();
   const recipeBook = new RecipeBook();
   await recipeBook.loadRecipesFromDirectory(
     path.join(__dirname, "..", "recipes")

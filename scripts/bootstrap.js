@@ -10,6 +10,9 @@ const { promisify } = require("util");
 const pipe = promisify(pipeline);
 
 const AGENT_DIR = path.join(__dirname, "..", "elastic_agent");
+const CONFIG_DIR = path.join(__dirname, "..", "config");
+const CONFIG_FILE = path.join(CONFIG_DIR, "fbi.yml");
+const CONFIG_TEMPLATE_FILE = path.join(CONFIG_DIR, "fbi.example.yml");
 
 const createDirIfNeeded = async (path) => {
   const dirExists = await fs
@@ -47,4 +50,19 @@ const downloadElasticAgent = async () => {
   console.log(`Elastic Agent extracted`);
 };
 
-downloadElasticAgent();
+const createConfigIfNeeded = async () => {
+  const configExists = await fs
+    .access()
+    .then(() => true)
+    .catch(() => false);
+  if (configExists) {
+    return;
+  }
+
+  await fs.copyFile(CONFIG_TEMPLATE_FILE, CONFIG_FILE);
+  console.log(
+    `New config created at ${CONFIG_FILE}, you need to edit it before running \`npm start\``
+  );
+};
+
+downloadElasticAgent().then(() => createConfigIfNeeded());

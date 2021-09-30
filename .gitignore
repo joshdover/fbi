@@ -1,3 +1,4 @@
 /node_modules/
 /elastic_agent/
 .DS_Store
+/config/fbi.yml

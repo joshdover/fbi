@@ -2,6 +2,7 @@ import { updatedDiff } from "deep-object-diff";
 import path from "path";
 import { BehaviorSubject, Observable, ReplaySubject } from "rxjs";
 import { Container, ContainerBackend } from ".";
+import { range } from "../utils";
 import {
   generateDefaultPackagePolicy,
   getPackagePolicyName,
@@ -35,6 +36,8 @@ export interface AgentConfig {
     is_managed?: boolean;
   };
 }
+
+export type ResolvedAgentPolicy = Required<AgentConfig["policy"]>;
 
 export interface AgentGroupStatus {
   policy: "not_created" | "creating" | "created" | "error";
@@ -116,26 +119,43 @@ export class AgentGroup {
     });
   }
 
-  async #configurePolicy(): Promise<void> {
+  public get resolvedPolicy(): ResolvedAgentPolicy {
     const configPolicy = this.#config.policy;
     const policyName = configPolicy.name ?? `fbi-${this.#config.id}`;
+    return {
+      name: policyName,
+      description:
+        configPolicy.description ??
+        `Policy created by FBI ${this.#config.id} recipe`,
+      namespace: configPolicy.namespace ?? "default",
+      monitoring: configPolicy.monitoring ?? ["metrics", "logs"],
+      unenrollment_timeout_s: configPolicy.unenrollment_timeout_s ?? 600,
+      is_managed: configPolicy.is_managed ?? false,
+      integrations: configPolicy.integrations,
+    };
+  }
+
+  async #configurePolicy(): Promise<void> {
+    const resolvedPolicy = this.resolvedPolicy;
     const { items: existingPolicies } = await this.#kibanaClient<{
       items: Array<{
         name: string;
         id: string;
         package_policies: Array<{ id: string }>;
       }>;
-    }>("GET", `/api/fleet/agent_policies?perPage=1&kuery=name:"${policyName}"`);
+    }>(
+      "GET",
+      `/api/fleet/agent_policies?perPage=1&kuery=name:"${resolvedPolicy.name}"`
+    );
 
+    // Remap field names
     const expectedAgentPolicy = {
-      name: policyName,
-      description:
-        configPolicy.description ??
-        `Policy created by FBI ${this.#config.id} recipe`,
-      namespace: configPolicy.namespace ?? "default",
-      monitoring_enabled: configPolicy.monitoring ?? ["metrics", "logs"],
-      unenroll_timeout: configPolicy.unenrollment_timeout_s ?? 600,
-      is_managed: configPolicy.is_managed ?? false,
+      name: resolvedPolicy.name,
+      description: resolvedPolicy.description,
+      namespace: resolvedPolicy.namespace,
+      monitoring_enabled: resolvedPolicy.monitoring,
+      unenroll_timeout: resolvedPolicy.unenrollment_timeout_s,
+      is_managed: resolvedPolicy.is_managed,
     };
 
     const existingAgentPolicy = existingPolicies[0];
@@ -143,7 +163,7 @@ export class AgentGroup {
 
     if (!agentPolicyId) {
       // Create an agent policy
-      this.#logs$.next(`Creating new agent policy [${policyName}]`);
+      this.#logs$.next(`Creating new agent policy [${resolvedPolicy.name}]`);
       const {
         item: { id },
       } = await this.#kibanaClient<{ item: { id: string } }>(
@@ -324,11 +344,3 @@ export class AgentGroup {
     });
   }
 }
-
-const range = (x: number): number[] => {
-  const r = [];
-  for (let i = Math.abs(x); i > 0; i--) {
-    r.push(i);
-  }
-  return r;
-};

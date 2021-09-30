@@ -1,8 +1,16 @@
-import React, { useCallback } from "react";
-import { AgentGroupStatus } from "../cluster/agent_group";
+import React, { useCallback, useState } from "react";
+import {
+  AgentConfig,
+  AgentGroupStatus,
+  ResolvedAgentPolicy,
+} from "../cluster/agent_group";
+import { range } from "../utils";
 
 interface Props {
-  recipes: Record<string, AgentGroupStatus>;
+  recipes: Record<
+    string,
+    { policy: ResolvedAgentPolicy; status: AgentGroupStatus }
+  >;
   configureAgentGroupPolicy(id: string): void;
   scaleAgentGroup(id: string, size: number): void;
 }
@@ -13,31 +21,35 @@ export const RecipeList: React.FC<Props> = ({
   scaleAgentGroup,
 }) => {
   return (
-    <>
-      {Object.entries(recipes).map(([recipeId, status], idx) => (
-        <box height={1} top={idx} key={recipeId}>
-          <Recipe
-            id={recipeId}
-            status={status}
-            configureAgentGroupPolicy={() =>
-              configureAgentGroupPolicy(recipeId)
-            }
-            scaleAgentGroup={(size: number) => scaleAgentGroup(recipeId, size)}
-          />
-        </box>
+    <layout width="100%-2" height="100%-2" layout="inline">
+      {Object.entries(recipes).map(([recipeId, { policy, status }], idx) => (
+        <Recipe
+          id={recipeId}
+          // @ts-expect-error not sure what's up here
+          key={idx}
+          policy={policy}
+          status={status}
+          configureAgentGroupPolicy={() => configureAgentGroupPolicy(recipeId)}
+          scaleAgentGroup={(size: number) => scaleAgentGroup(recipeId, size)}
+        />
       ))}
-    </>
+    </layout>
   );
 };
 
 const Recipe: React.FC<{
   id: string;
+  policy: ResolvedAgentPolicy;
   status: AgentGroupStatus;
   configureAgentGroupPolicy(): void;
   scaleAgentGroup(size: number): void;
-}> = ({ id, status, configureAgentGroupPolicy, scaleAgentGroup }) => {
+}> = ({ id, policy, status, configureAgentGroupPolicy, scaleAgentGroup }) => {
+  const [expanded, setExpanded] = useState(false);
+  const toggleExpanded = useCallback(
+    () => setExpanded(!expanded),
+    [expanded, setExpanded]
+  );
   const count = status.size;
-  const paddedCount = count.toString().length === 1 ? ` ${count}` : `${count}`;
 
   const scaleUp = useCallback(() => {
     scaleAgentGroup(count + 1);
@@ -47,48 +59,124 @@ const Recipe: React.FC<{
     scaleAgentGroup(count - 1);
   }, [scaleAgentGroup, count]);
 
+  const policyButtonProps = {
+    width: 17,
+    right: 0,
+    align: "center" as const,
+    border: "line" as const,
+  };
+
+  // Implement padding manually since align="center" isn't working on this?
+  const sizeWidth = 7;
+  const sizeString = status.size.toString();
+  const numSpacesNeeded = Math.floor((sizeWidth - sizeString.length) / 2);
+  const sizeStringPadded = `${range(numSpacesNeeded)
+    .map(() => " ")
+    .join("")}${sizeString}`;
+
   return (
-    <box width="100%-2" height={1}>
-      <box width="100%-5" height={1} left={0}>
-        {id}
-      </box>
-      {status.policy === "not_created" ? (
+    <box width="100%" height={expanded ? 8 : 3}>
+      <box width="100%" height={3}>
+        <button
+          width={1}
+          left={1}
+          top={1}
+          content={expanded ? "˅" : ">"}
+          mouse
+          // @ts-expect-error same
+          onPress={toggleExpanded}
+        />
         <button
           mouse
-          height={1}
-          width={13}
-          right={0}
           // @ts-expect-error same
-          onPress={configureAgentGroupPolicy}
-        >
-          Create policy
-        </button>
-      ) : null}
-      {status.policy === "creating" ? (
-        <box height={1} width={11} right={0}>
-          Creating...
+          onPress={toggleExpanded}
+          content={id}
+          width="100%-5"
+          left={3}
+          top={1}
+        />
+        {status.policy === "not_created" || status.policy === "creating" ? (
+          <button
+            mouse
+            // @ts-expect-error same
+            onPress={configureAgentGroupPolicy}
+            {...policyButtonProps}
+            align="center"
+            content="Setup policy"
+          />
+        ) : null}
+        {status.policy === "creating" ? (
+          <box
+            {...policyButtonProps}
+            style={{ fg: "grey", border: { fg: "grey" } }}
+            content="Creating..."
+          />
+        ) : null}
+        {status.policy === "error" ? (
+          <box {...policyButtonProps} content="Error, see logs" />
+        ) : null}
+        {status.policy === "created" ? (
+          <layout width={17} right={0} height="100%">
+            <button
+              mouse
+              width={5}
+              height="100%"
+              align="center"
+              valign="middle"
+              // @ts-expect-error same
+              onPress={scaleDown}
+              content="-"
+              style={{ fg: "black", bg: "lightgrey" }}
+            />
+            <box
+              width={sizeWidth}
+              height="100%"
+              valign="middle"
+              content={sizeStringPadded}
+              style={{ bg: "black" }}
+            />
+            <button
+              mouse
+              width={5}
+              height="100%"
+              align="center"
+              valign="middle"
+              // @ts-expect-error same
+              onPress={scaleUp}
+              content="+"
+              style={{ fg: "black", bg: "lightgrey" }}
+            />
+          </layout>
+        ) : null}
+      </box>
+      {expanded ? (
+        <box top={3} height={6}>
+          <layout height="100%" width="100%">
+            <CollapsibleLine />
+            <text width="100%">{`Policy Name: ${policy.name}`}</text>
+            <text width="100%">{`Integrations: ${policy.integrations
+              .map((i) => i.package)
+              .join(", ")}`}</text>
+            <text width="100%">{`Namespace: ${policy.namespace}`}</text>
+            <CollapsibleLine />
+          </layout>
         </box>
-      ) : null}
-      {status.policy === "error" ? (
-        <box height={1} width={15} right={0}>
-          Error, see logs
-        </box>
-      ) : null}
-      {status.policy === "created" ? (
-        <>
-          {/** @ts-expect-error same */}
-          <button mouse width={1} height={1} right={4} onPress={scaleUp}>
-            +
-          </button>
-          <box width={3} height={1} right={1}>
-            {paddedCount}
-          </box>
-          {/** @ts-expect-error same */}
-          <button mouse width={1} height={1} right={0} onPress={scaleDown}>
-            -
-          </button>
-        </>
       ) : null}
     </box>
   );
 };
+
+const CollapsibleLine = () => (
+  <line
+    width="100%"
+    height={1}
+    orientation="horizontal"
+    type="line"
+    style={{
+      border: {
+        type: "line",
+        fg: "blue",
+      },
+    }}
+  />
+);

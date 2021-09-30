@@ -8,7 +8,12 @@ import {
   Observable,
   switchMap,
 } from "rxjs";
-import { AgentConfig, AgentGroup, AgentGroupStatus } from "./agent_group";
+import {
+  AgentConfig,
+  AgentGroup,
+  AgentGroupStatus,
+  ResolvedAgentPolicy,
+} from "./agent_group";
 import { FleetServer } from "./fleet_server";
 import { ClusterConfig } from "./config";
 
@@ -17,7 +22,10 @@ export type ComponentStatus = "stopped" | "starting" | "running" | "error";
 export interface ClusterStatus {
   backend: ComponentStatus;
   fleetServer: ComponentStatus;
-  agentGroups: Record<string, AgentGroupStatus>;
+  agentGroups: Record<
+    string,
+    { policy: ResolvedAgentPolicy; status: AgentGroupStatus }
+  >;
 }
 
 export class Cluster {
@@ -61,7 +69,15 @@ export class Cluster {
           Object.values(agentGroups).map((ag) =>
             ag
               .getStatus$()
-              .pipe(map((ags) => [ag.id, ags] as [string, AgentGroupStatus]))
+              .pipe(
+                map(
+                  (status) =>
+                    [ag.id, { policy: ag.resolvedPolicy, status }] as [
+                      string,
+                      { policy: ResolvedAgentPolicy; status: AgentGroupStatus }
+                    ]
+                )
+              )
           )
         )
       ),

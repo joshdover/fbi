@@ -4,6 +4,7 @@ import { BehaviorSubject, Observable, ReplaySubject } from "rxjs";
 import { Container, ContainerBackend } from ".";
 import {
   generateDefaultPackagePolicy,
+  getPackagePolicyName,
   PackagePolicy,
   PackageResponse,
 } from "./package_policy";
@@ -124,7 +125,7 @@ export class AgentGroup {
         id: string;
         package_policies: Array<{ id: string }>;
       }>;
-    }>("GET", `/api/fleet/agent_policies?perPage=1&kuery=name:${policyName}`);
+    }>("GET", `/api/fleet/agent_policies?perPage=1&kuery=name:"${policyName}"`);
 
     const expectedAgentPolicy = {
       name: policyName,
@@ -157,7 +158,7 @@ export class AgentGroup {
       const diff = updatedDiff(existingAgentPolicy, expectedAgentPolicy);
       if (Object.keys(diff).length > 0) {
         this.#logs$.next(
-          `Updating package policy [${
+          `Updating agent policy [${
             existingAgentPolicy.name
           }], diff: ${JSON.stringify(diff, undefined, 2)}`
         );
@@ -197,11 +198,11 @@ export class AgentGroup {
       : [];
 
     // Note: this doesn't support multiple integrations of the same package
-    const expectedPackages = this.#config.policy.integrations.map(
-      (i) => i.package
+    const expectedPackagesPolicyNames = this.#config.policy.integrations.map(
+      (i) => getPackagePolicyName(this.#config.id, i)
     );
     const policiesToRemove = existingPackagePolicies.filter(
-      (p) => !expectedPackages.includes(p.package.name)
+      (p) => !expectedPackagesPolicyNames.includes(p.name)
     );
 
     if (policiesToRemove.length > 0) {

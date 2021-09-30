@@ -97,6 +97,13 @@ type PackagePolicyInputConfigRecord = Record<
   { type?: string; value?: any; frozen?: boolean }
 >;
 
+export const getPackagePolicyName = (
+  agentConfigId: string,
+  integration: AgentConfig["policy"]["integrations"][number]
+): string => {
+  return integration.name ?? `fbi-${agentConfigId}-${integration.package}`;
+};
+
 export const generateDefaultPackagePolicy = (
   response: PackageResponse,
   agentConfigId: string,
@@ -112,7 +119,7 @@ export const generateDefaultPackagePolicy = (
   } = response;
 
   const packagePolicy: PackagePolicy = {
-    name: integration.name ?? `fbi-${agentConfigId}-${pkgName}`,
+    name: getPackagePolicyName(agentConfigId, integration),
     description: integration.description ?? "",
     enabled: true,
     package: {

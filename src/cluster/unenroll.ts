@@ -14,7 +14,7 @@ export const unenrollAgentForHostname = async (
     }>;
   }>(
     "GET",
-    `/api/fleet/agents?perPage=1&kuery=local_metadata.host.hostname:${hostname}`
+    `/api/fleet/agents?perPage=1&kuery=local_metadata.host.hostname:"${hostname}"`
   );
 
   if (agentsResponse.total > 1) {

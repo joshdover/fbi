@@ -98,6 +98,7 @@ export class Cluster {
   }
 
   public async configureAgentGroupPolicy(id: string): Promise<void> {
+    this.logger.log(`Configuring agent group policy [${id}]`);
     const agentGroup = this.agentGroups$.value[id];
     if (!agentGroup) {
       throw new Error(`Must call Cluster.addAgentGroup first`);

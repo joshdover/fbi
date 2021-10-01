@@ -6,7 +6,6 @@ policy:
   namespace: foo
   unenroll_timeout_s: 120
   monitoring: []
-  is_managed: true
   integrations:
     - package: elastic_agent
       namespace: default

@@ -40,6 +40,7 @@ export class FleetServer {
     const serviceToken = await this.#createServiceToken();
 
     this.#container = await this.#backend.launchContainer({
+      name: `fbi-fleet-server-1`,
       image: "docker.elastic.co/beats/elastic-agent:8.0.0-SNAPSHOT",
       ports: ["8220"],
       hostname: "fleet-server",

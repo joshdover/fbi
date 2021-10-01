@@ -13,6 +13,7 @@ export interface Container {
 
 export interface ContainerOptions {
   image: string;
+  name: string;
   hostname?: string;
   /** Mount files from strings, useful for yaml configs */
   files?: Record<string, string>;

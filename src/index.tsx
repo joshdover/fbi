@@ -56,6 +56,13 @@ export const cli = async (): Promise<void> => {
       process.exit(0);
     }
   });
+  screen.key(["C-d"], async () => {
+    try {
+      logger.logs$.next(`Force quitting without shutting down...`);
+    } finally {
+      process.exit(1);
+    }
+  });
 
   // Rendering the React app using our screen
   render(

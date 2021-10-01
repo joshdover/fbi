@@ -1,5 +1,6 @@
 import { updatedDiff } from "deep-object-diff";
 import path from "path";
+import { randomBytes } from "crypto";
 import { BehaviorSubject, Observable, ReplaySubject } from "rxjs";
 import { Container, ContainerBackend } from ".";
 import { range } from "../utils";
@@ -12,6 +13,7 @@ import {
 import { StackClient } from "./types";
 import { unenrollAgentForHostname } from "./unenroll";
 
+const allowedDockerChars = /[a-zA-Z0-9_.]/;
 export interface AgentConfig {
   id: string;
   container: {
@@ -290,7 +292,14 @@ export class AgentGroup {
   }
 
   async #addAgent(): Promise<void> {
+    const randomId = randomBytes(6)
+      .toString("base64")
+      .split("")
+      .filter((s) => s.match(allowedDockerChars))
+      .join("");
+
     const container = await this.#backend.launchContainer({
+      name: `fbi-recipe-${this.#config.id}-${randomId}`,
       image: this.#config.container.image,
       env: this.#config.container.env,
       mounts: {

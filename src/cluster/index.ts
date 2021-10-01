@@ -1,2 +1,3 @@
 export * from "./backends";
-export { Cluster, ClusterConfig } from "./cluster";
+export { Cluster } from "./cluster";
+export { ClusterConfig } from "./config";

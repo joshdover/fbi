@@ -83,6 +83,7 @@ class DockerContainer implements Container {
     );
 
     const options: ContainerCreateOptions = {
+      name: this.options.name,
       Image: this.options.image,
       Env: Object.entries(this.options.env ?? {}).map(
         ([key, val]) => `${key}=${val}`

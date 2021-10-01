@@ -1,9 +1,5 @@
 import React, { useCallback, useState } from "react";
-import {
-  AgentConfig,
-  AgentGroupStatus,
-  ResolvedAgentPolicy,
-} from "../cluster/agent_group";
+import { AgentGroupStatus, ResolvedAgentPolicy } from "../cluster/agent_group";
 import { range } from "../utils";
 
 interface Props {

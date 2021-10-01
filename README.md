@@ -25,6 +25,9 @@ real software (eg. nginx).
     npm run bootstrap
     ```
 - Find your private IP address and update `kibana.host` and `elasticsearch.host` in `config/fbi.yml`
+- Configure Fleet settings in Kibana UI:
+  - Fleet Server host:  `http://fleet-server:8220`
+  - Elasticsearch host:  `http://<your private ip>:9200`
 - Start the tool:
     ```sh
     npm start

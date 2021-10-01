@@ -3,6 +3,8 @@
 Tool for orchestrating Fleet Server and pre-configured Elastic Agents monitoring
 real software (eg. nginx).
 
+![Image.png](./screen.png)
+
 ## Get Started
 
 ### Install pre-requisites
@@ -32,3 +34,49 @@ real software (eg. nginx).
     ```sh
     npm start
     ```
+- To exit, press Ctrl+C (will shutdown all containers and unenroll agents) or Ctrl+D (will exit without cleaning up)
+
+## Recipes
+
+FBI supports "recipes" which allow you to define a configuration for containers
+with an associated Agent Policy that will get created for you. This is useful
+for testing certain integrations or sets of configuration in a reproducible way.
+
+FBI will load recipes from the `./recipes` directory on disk.
+
+### Basic Example
+
+```yaml
+id: nginx  # unique ID to be displayed in the UI
+container: # Docker container configuration to launch for each instance
+  image: nginx 
+policy:
+  integrations: # list of Elastic package integrations to add to the agent policy
+    - package: elastic_agent
+    - package: system
+    - package: nginx
+```
+
+### Advanced Example
+
+```yaml
+id: foo nginx
+container:
+  image: nginx
+  env:
+    MY_VAR: value
+policy:
+  name: Foo Nginx Machines
+  namespace: foo
+  unenroll_timeout_s: 120
+  monitoring: []
+  integrations:
+    - package: elastic_agent
+      namespace: default
+      name: "Agent monitoring"
+    - package: system
+      name: "System metrics"
+    - package: nginx
+      version: 0.3.0
+      name: "Acme webservers"
+```

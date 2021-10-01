@@ -143,7 +143,7 @@ export class AgentGroup {
       items: Array<{
         name: string;
         id: string;
-        package_policies: Array<{ id: string }>;
+        package_policies?: Array<{ id: string }>;
       }>;
     }>(
       "GET",
@@ -208,7 +208,7 @@ export class AgentGroup {
     }
 
     // Add integrations to policy
-    const existingPackagePolicies = existingAgentPolicy
+    const existingPackagePolicies = existingAgentPolicy?.package_policies
       ? await Promise.all(
           existingAgentPolicy.package_policies.map((packagePolicyId) =>
             this.#kibanaClient<{ item: PackagePolicy & { id: string } }>(

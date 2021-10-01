@@ -52,7 +52,7 @@ const downloadElasticAgent = async () => {
 
 const createConfigIfNeeded = async () => {
   const configExists = await fs
-    .access()
+    .access(CONFIG_FILE)
     .then(() => true)
     .catch(() => false);
   if (configExists) {

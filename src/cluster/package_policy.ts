@@ -5,7 +5,7 @@ export interface PackageResponse {
   version: string;
   title: string;
   data_streams: PackageDataStream[];
-  policy_templates: PolicyTemplate[];
+  policy_templates?: PolicyTemplate[];
 }
 
 interface PackageDataStream {
@@ -129,7 +129,10 @@ export const generateDefaultPackagePolicy = (
     },
     namespace: integration.namespace ?? "default",
     output_id: integration.output_id ?? "default",
-    inputs: generateInputsFromPolicyTemplates(policy_templates, data_streams),
+    inputs: generateInputsFromPolicyTemplates(
+      policy_templates ?? [],
+      data_streams
+    ),
     policy_id: agentPolicyId,
   };
 
